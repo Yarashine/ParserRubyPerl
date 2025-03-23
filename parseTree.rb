@@ -1,7 +1,7 @@
 require_relative 'token'
 require_relative 'lexer'
 
-class Parser
+class Parser2
   def initialize(tokens)
     @tokens = tokens
     @current = 0
@@ -11,33 +11,28 @@ class Parser
   def print_tree(data, indent = 0)
     if data.is_a?(Array)
       puts "["
-      # Добавляем элементы массива, разделённые запятой
-      data.each_with_index do |element, index|
+      data.each do |element|
         print ' ' * (indent + 2)
         print_tree(element, indent + 2)
-        print ',' unless index == data.length - 1  # добавляем запятую, если это не последний элемент
-        puts # переходим на новую строку
       end
       puts "#{' ' * indent}]"
     elsif data.is_a?(Hash)
-      puts "{"
+      puts "{" 
       data.each do |key, value|
         print "#{' ' * (indent + 2)}#{key}: "
         print_tree(value, indent + 2)
-        puts # после каждого ключа/значения переходим на новую строку
       end
       puts "#{' ' * indent}}"
     else
-      print "#{' ' * indent}#{data.inspect}"
+      puts data.inspect
     end
   end
-  
-  
 
   def parse
     ast = []
     while !(peek.value == "EOF")
       ast << statement
+      peek.value
     end
     ast
   end
@@ -71,6 +66,9 @@ class Parser
       elsif ["default", "else"].include?(peek.value)
         remaining_condition_declaration
       end
+    elsif peek.type == :comment
+      advance
+      return { type: :comment, value: previous.value  }
     elsif peek.type == :identifier
       advance
       if peek.type == :operator && peek.value == "="
@@ -80,7 +78,7 @@ class Parser
         if peek.type == :punctuation && peek.value == ";"
           advance
         end
-        return func
+        return { type: :brackets, value: func  }
       elsif peek.type == :operator && peek.value == "++"
         value = postfix_increment
         advance if peek.type == :punctuation && peek.value == ";"
@@ -96,13 +94,11 @@ class Parser
     if peek.type == :keyword && peek.value == "constant"
       advance
       if peek.type == :identifier
-        name = peek.value
-        subtype = peek.subtype
         advance
         if peek.type == :operator && peek.value == "=>"
           advance
           value = expression_until([";"]);
-          return { type: :constant, subtype: subtype, name: name , value: value  }
+          return { type: :constant, value: value  }
         end
       end
     elsif peek.type == :keyword && peek.value == "feature"
@@ -119,7 +115,7 @@ class Parser
       body_ast << statement
     end
     advance
-    return body_ast
+    return { type: :figureBrackets, value: body_ast  }
   end
 
   def foreach_declaration
@@ -128,20 +124,18 @@ class Parser
       advance
       if peek.type == :identifier
         element = peek.value
-        subtype = peek.subtype
         advance
         if peek.type == :punctuation && peek.value == "("
           advance
           if peek.type == :identifier
             collection = peek.value
-            colSubtype = peek.subtype
             advance
             if peek.type == :punctuation && peek.value == ")"
               advance
               if peek.type == :punctuation && peek.value == "{"
                 advance
                 body = body_declaration
-                return { type: :foreach, collection: { type: :identifier, subtype: subtype, value:collection}, element: { type: :identifier, subtype: colSubtype, value: element}, body: body }
+                return { type: :foreach, collection: { type: :brackets, value:collection}, element: element, body: body }
               end              
             end
           end
@@ -161,7 +155,7 @@ class Parser
       if peek.type == :punctuation && peek.value == "{"
         advance
         body = body_declaration
-        return { type: :for, condition1: condition1, condition2: condition2, condition3: condition3, body: body }
+        return { type: :for, conditions: { type: :brackets, value: { condition1: condition1, condition2: condition2, condition3: condition3 } }, body: body }
       end
     end
     raise "Неожиданный токен while: #{peek.value}"
@@ -178,7 +172,7 @@ class Parser
         advance
         puts peek.value
         body = body_declaration
-        return { type: name, condition: expression, body: body }
+        return { type: name, condition: { type: :brackets, value: expression}, body: body }
       end
     end
     raise "Неожиданный токен conditional: #{peek.value}"
@@ -198,12 +192,11 @@ class Parser
     advance
     if peek.type == :identifier
       name = peek.value
-      subtype = peek.subtype
       advance
       if peek.type == :punctuation && peek.value == "{"
         advance
         body = body_declaration
-        return { type: :function, name:{ type: :identifier, subtype: subtype, value:  name}, body: body }
+        return { type: :function, name: name, body: body }
       end
     end
     raise "Неожиданный токен while: #{peek.value}"
@@ -224,7 +217,7 @@ class Parser
       if peek.type == :punctuation && peek.value == "{"
         advance
         body = body_declaration
-        return { type: :while, condition: expression, body: body }
+        return { type: :while, condition: { type: :brackets, value: expression}, body: body }
       end
     end
     raise "Неожиданный токен while: #{peek.value}"
@@ -238,7 +231,7 @@ class Parser
       if peek.type == :punctuation && peek.value == "{"
         advance
         body = body_declaration
-        return { type: :until, condition: expression, body: body }
+        return { type: :until, condition: { type: :brackets, value:expression}, body: body }
       end
     end
     raise "Неожиданный токен until: #{peek.value}"
@@ -252,7 +245,7 @@ class Parser
       if peek.type == :punctuation && peek.value == "{"
         advance
         body = body_declaration
-        return { type: :unless, condition: expression, body: body }
+        return { type: :unless, condition: { type: :brackets, value:expression}, body: body }
       end
     end
     raise "Неожиданный токен unless: #{peek.value}"
@@ -278,7 +271,6 @@ class Parser
       end
     elsif peek.type == :identifier
       name = peek.value
-      subtype = peek.subtype
       advance
     end
   
@@ -290,24 +282,20 @@ class Parser
     end
 
     if names.size == 0
-      { type: :variable_declaration, scope: type, name:{ type: :identifier, subtype: subtype, value:  name}, value: value }
+      { type: :variable_declaration, scope: type, name: name, value: value }
     else
-      { type: :variable_declaration, scope: type, names: names, value: value }
+      { type: :variable_declaration, scope: type, names: { type: :brackets, value:names}, value: value }
     end
   end  
 
   def assignment_statement
     name = previous.value
-    subtype = previous.subtype
-    if name == ")"
-      name = "names"
-    end
     value = nil
     if peek.type == :operator && peek.value == "="
       advance
       value = expression_until([";"])
     end
-    { type: :assignment, name: name, subtype: subtype, value: value }
+    { type: :assignment, name: name, value: value }
   end
 
   # Новый метод, который парсит выражение **до точки с запятой**
@@ -422,27 +410,26 @@ class Parser
       return { type: :unary_expression, operator: "!", value: right }
     elsif peek.type == :number
       advance
-      { type: :number, subtype: previous.subtype, value: previous.value }
+      { type: :number, value: previous.value }
     elsif peek.type == :string  # Поддержка строк
       string_declaration
     elsif peek.type == :identifier
       name = peek.value
-      subtype = peek.subtype
       advance
       if peek.type == :punctuation && peek.value == "[" 
         advance
         index = expression_until(["]"])  # Получаем индексное выражение
-        return { type: :index_expression, name: { type: :identifier, subtype: subtype, value: name}, index: index }
+        return { type: :index_expression, name: name, index: index }
       end
 
       if peek.type == :punctuation && peek.value == "(" 
-        return function_call
+        return { type: :brackets, value:function_call}
       end
 
       if peek.type == :punctuation && peek.value == "{" 
         advance
         index = expression_until(["}"])  # Получаем индексное выражение
-          return { type: :index_hash_expression, name: { type: :identifier, subtype: subtype, value: name}, index: index }
+        return { type: :index_hash_expression, name: name, index: index }
       end
 
       if peek.type == :operator && peek.value == "->" 
@@ -450,7 +437,7 @@ class Parser
         if peek.type == :punctuation && peek.value == "[" 
           advance
           index = expression_until(["]"])  # Получаем индексное выражение
-          return { type: :ref_index_expression, name:{ type: :identifier, subtype: subtype, value:  name}, index: index }
+          return { type: :ref_index_expression, name: name, index: index }
         end
         raise "Неожиданное выражение (после -> ожидалось [): #{peek.value}"
       end
@@ -459,14 +446,14 @@ class Parser
         return postfix_increment
       end
   
-      return { type: :identifier, name: name, subtype: subtype }
+      return { type: :identifier, name: name }
     elsif peek.type == :punctuation && peek.value == "["
       elements = []
       advance
       until previous.type == :punctuation && previous.value == "]"
         elements << expression_until([",", "]"]) 
       end
-      return { type: :array, elements: elements }
+      return { type: :squareBrackets, value: { type: :array, elements: elements }  }
       # if (elements.size > 1)
       #   return { type: :array, elements: elements }
       # end
@@ -490,9 +477,9 @@ class Parser
         raise "Неожиданное выражение3 (в hash объявлении только хэш объявления)"                
       end
       if hash.size > 0
-        return { type: :hash, elements: hash }
+        return { type: :hash, elements: { type: :brackets, value:hash} }
       elsif (elements.size > 1)
-        return { type: :array, elements: elements }
+        return { type: :array, elements: { type: :brackets, value:elements} }
       elsif (elements.size == 1)
         return elements[0]
       end

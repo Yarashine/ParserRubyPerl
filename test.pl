@@ -1,5 +1,7 @@
+
 # Целочисленное значение
-my $number = 42;
+my $number = 4e2;
+my $number = 5;
 $number = 1e+18;  
 $number = 8.41E-10;  
 $number = 3.2e5; 
@@ -10,12 +12,25 @@ $number = 5;
 $number = -42;
 $number = 1000000;
 
+
+# my $scalar = a^b;
+# my 💖scalar = "Hello, Perl!";
+# my переменная = "Hello, Perl!";
+# my $scalar = "Hello, Perl!;
+
+
+
+
 # Число с плавающей запятой
 my $pi = 3.14159;
-my $big_number = 1.23e5; # Экспоненциальная запись
+my $big_number = 1.23e5; 
 
 # Строковое значение
 my $text = "Hello, Perl!";
+
+
+my $number = 4e2;
+my $number = 5;
 
 # Переменная без значения (undef)
 my $undefined;
@@ -82,7 +97,7 @@ print $array_ref->[1]; # Выведет 20
 
 # Объявление функции
 sub greet {
-    my ($name) = @_;
+    my $a = 5;
     return "Hello, $name!";
 }
 

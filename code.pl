@@ -1,0 +1,3 @@
+
+my $undefined;
+print $undefined;

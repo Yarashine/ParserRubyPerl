@@ -1,13 +1,15 @@
 class Token
-  attr_reader :type, :value
+  attr_reader :type, :value, :subtype
 
-  def initialize(type, value)
+  def initialize(type, value, subtype = nil)
     @type = type
     @value = value
+    @subtype = subtype
   end
 
   def to_s
-    "#{@type}: #{@value}"
+    subtype_str = @subtype ? ":#{@subtype}" : ""
+    "#{@type}#{subtype_str}: #{@value}"
   end
 end
 

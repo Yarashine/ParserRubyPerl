@@ -2,7 +2,7 @@ require_relative 'token'
 
 
 
-class Lexer
+class Lexer2
   KEYWORDS = %w[my our use sub if else unless while until for foreach given when default print return constant feature]
   OPERATORS = %w[= ++ + - * / == != < > <= >= && || ! => . ->]
   PUNCTUATION = %w[( ) { } [ ] , ;]
@@ -18,7 +18,7 @@ class Lexer
     until @code.empty?
       case @code
       when /\A#(.*)/ 
-        #@tokens << Token.new(:comment, $1)
+        @tokens << Token.new(:comment, $1)
       when /\A(-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/  
         subtype = $1.include?('.') || $1.include?('e')|| $1.include?('E') ? :float : :integer
         check_identificator(true, $1)
